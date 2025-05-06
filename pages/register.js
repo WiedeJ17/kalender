@@ -85,9 +85,9 @@ export default function RegisterPage() {
             style={styles.input}
           />
           <select name="role" onChange={handleFormChange} required style={styles.select}>
-            <option value="User">User</option>
-            <option value="Vorstand">Vorstand</option>
-            <option value="Admin">Admin</option>
+          <option value="standard">Standard</option>
+          <option value="vorstand">Vorstand</option>
+          <option value="admin">Admin</option>
           </select>
           <button type="submit" style={styles.submitButton}>Registrieren</button>
         </form>

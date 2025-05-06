@@ -167,7 +167,7 @@ const Calendar = () => {
         </div>
         <div className="navLinks">
           <button onClick={() => router.push("/calendar")}>Kalender</button>
-          {session.user.role === "admin" && (
+          {session.user.role === "admin" &&  (
             <>
               <button onClick={() => router.push("/analytics")}>Analytics</button>
               <button onClick={() => router.push("/register")}>Benutzerverwaltung</button>
@@ -543,7 +543,7 @@ const Calendar = () => {
           border: 1px solid #ccc;
           padding: 1rem;
           border-radius: 8px;
-          max-width: 100%;
+          max-width: 50%;
           margin: 1rem auto;
         }
 
