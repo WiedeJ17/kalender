@@ -1,5 +1,12 @@
-import "@/styles/globals.css";
+import { SessionProvider } from "next-auth/react"; // Importiere SessionProvider
+import "../styles/globals.css"; // Deine globalen Styles, falls vorhanden
 
-export default function App({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+function MyApp({ Component, pageProps }) {
+  return (
+    <SessionProvider session={pageProps.session}>
+      <Component {...pageProps} />
+    </SessionProvider>
+  );
 }
+
+export default MyApp;
