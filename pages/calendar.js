@@ -20,6 +20,11 @@ const Calendar = () => {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  // Neuer State für Löschbestätigung
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [reservationToDelete, setReservationToDelete] = useState(null);
 
   const groupColors = {
     Fußball: '#4CAF50',
@@ -33,16 +38,18 @@ const Calendar = () => {
       const response = await fetch('/api/reservations/get');
       const data = await response.json();
       setReservedResources(data);
+      return data;
     } catch (error) {
       console.error('Fehler beim Laden der Reservierungen:', error);
-      alert('Fehler beim Laden der Reservierungen');
+      setErrorMessage('Fehler beim Laden der Reservierungen');
+      setIsErrorModalOpen(true);
+      return [];
     }
   };
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      fetchReservations();
-      setLoading(false);
+      fetchReservations().then(() => setLoading(false));
     } else if (status === 'unauthenticated') {
       router.push('/auth/signin');
     }
@@ -61,15 +68,44 @@ const Calendar = () => {
 
   const handleLogout = () => signOut({ callbackUrl: "/" });
 
+  const checkTimeConflict = (newReservation, reservations) => {
+    const newStart = new Date(`${newReservation.date}T${newReservation.startTime}:00`);
+    const newEnd = new Date(`${newReservation.date}T${newReservation.endTime}:00`);
+
+    const conflicts = reservations.filter((existing) => {
+      if (
+        existing.resource === newReservation.resource &&
+        format(new Date(existing.date), 'yyyy-MM-dd') === newReservation.date
+      ) {
+        const existingStart = new Date(`${existing.date}T${existing.startTime}:00`);
+        const existingEnd = new Date(`${existing.date}T${existing.endTime}:00`);
+        return newStart < existingEnd && newEnd > existingStart;
+      }
+      return false;
+    });
+
+    return conflicts.length > 0 ? conflicts : null;
+  };
+
   const handleReserve = async () => {
     if (status !== 'authenticated' || !session?.user?.username) {
-      alert('Bitte melden Sie sich an, um eine Reservierung zu erstellen.');
+      setErrorMessage('Bitte melden Sie sich an, um eine Reservierung zu erstellen.');
+      setIsErrorModalOpen(true);
       router.push('/auth/signin');
       return;
     }
 
     if (!selectedResource || !selectedGroup || !selectedDate || !startTime || !endTime) {
-      alert('Bitte alle Felder ausfüllen.');
+      setErrorMessage('Bitte alle Felder ausfüllen.');
+      setIsErrorModalOpen(true);
+      return;
+    }
+
+    const startDateTime = new Date(`${selectedDate}T${startTime}:00`);
+    const endDateTime = new Date(`${selectedDate}T${endTime}:00`);
+    if (endDateTime <= startDateTime) {
+      setErrorMessage('Die Endzeit muss nach der Startzeit liegen.');
+      setIsErrorModalOpen(true);
       return;
     }
 
@@ -84,6 +120,16 @@ const Calendar = () => {
       username: session.user.username,
     };
 
+    const latestReservations = await fetchReservations();
+    const conflicts = checkTimeConflict(reservation, latestReservations);
+    if (conflicts) {
+      setErrorMessage(
+        `Die Ressource "${selectedResource}" ist bereits am ${selectedDate} von ${conflicts[0].startTime} bis ${conflicts[0].endTime} reserviert.`
+      );
+      setIsErrorModalOpen(true);
+      return;
+    }
+
     try {
       const response = await fetch('/api/reservations', {
         method: 'POST',
@@ -96,7 +142,8 @@ const Calendar = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Reservierung erfolgreich erstellt');
+        setErrorMessage('Reservierung erfolgreich erstellt');
+        setIsErrorModalOpen(true);
         fetchReservations();
         setSelectedResource('');
         setSelectedGroup('');
@@ -105,11 +152,13 @@ const Calendar = () => {
         setStartTime('');
         setEndTime('');
       } else {
-        alert(data.message || 'Fehler bei der Reservierung');
+        setErrorMessage(data.message || 'Fehler bei der Reservierung');
+        setIsErrorModalOpen(true);
       }
     } catch (error) {
       console.error('Fehler bei der Reservierung:', error);
-      alert('Fehler beim Senden der Reservierung');
+      setErrorMessage('Fehler beim Senden der Reservierung');
+      setIsErrorModalOpen(true);
     }
   };
 
@@ -126,9 +175,19 @@ const Calendar = () => {
     setSelectedDayReservations([]);
   };
 
-  const handleDelete = async (reservation) => {
-    const confirmed = window.confirm('Möchtest du diese Reservierung wirklich löschen?');
-    if (!confirmed) return;
+  const handleCloseErrorModal = () => {
+    setIsErrorModalOpen(false);
+    setErrorMessage('');
+  };
+
+  const handleDelete = (reservation) => {
+    // Öffne das Löschbestätigungs-Modal und speichere die zu löschende Reservierung
+    setReservationToDelete(reservation);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!reservationToDelete) return;
 
     try {
       const res = await fetch('/api/reservations/delete', {
@@ -136,20 +195,33 @@ const Calendar = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: reservation._id }),
+        body: JSON.stringify({ id: reservationToDelete._id }),
       });
 
       if (res.ok) {
-        alert('Reservierung gelöscht');
+        setErrorMessage('Reservierung gelöscht');
+        setIsErrorModalOpen(true);
         fetchReservations();
         setIsModalOpen(false);
       } else {
-        alert('Fehler beim Löschen');
+        setErrorMessage('Fehler beim Löschen');
+        setIsErrorModalOpen(true);
       }
     } catch (error) {
       console.error('Fehler:', error);
-      alert('Fehler beim Löschen');
+      setErrorMessage('Fehler beim Löschen');
+      setIsErrorModalOpen(true);
+    } finally {
+      // Schließe das Löschbestätigungs-Modal
+      setIsDeleteModalOpen(false);
+      setReservationToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    // Schließe das Löschbestätigungs-Modal ohne Aktion
+    setIsDeleteModalOpen(false);
+    setReservationToDelete(null);
   };
 
   return (
@@ -167,7 +239,7 @@ const Calendar = () => {
         </div>
         <div className="navLinks">
           <button onClick={() => router.push("/calendar")}>Kalender</button>
-          {session.user.role === "admin" &&  (
+          {session.user.role === "admin" && (
             <>
               <button onClick={() => router.push("/analytics")}>Analytics</button>
               <button onClick={() => router.push("/register")}>Benutzerverwaltung</button>
@@ -273,6 +345,35 @@ const Calendar = () => {
             </div>
           </div>
         )}
+        {isErrorModalOpen && (
+          <div className="modal error-modal">
+            <div className="modal-content error-modal-content">
+              <button onClick={handleCloseErrorModal} className="modal-close">X</button>
+              <h3>Information</h3>
+              <p>{errorMessage}</p>
+              <button onClick={handleCloseErrorModal} className="modal-ok-button">
+                OK
+              </button>
+            </div>
+          </div>
+        )}
+        {isDeleteModalOpen && (
+          <div className="modal delete-modal">
+            <div className="modal-content delete-modal-content">
+              <button onClick={cancelDelete} className="modal-close">X</button>
+              <h3>Reservierung löschen</h3>
+              <p>Möchtest du diese Reservierung wirklich löschen?</p>
+              <div className="modal-buttons">
+                <button onClick={confirmDelete} className="modal-confirm-button">
+                  Ja
+                </button>
+                <button onClick={cancelDelete} className="modal-cancel-button">
+                  Nein
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="reservierungs-section">
           <h3>Reservierung hinzufügen</h3>
           <form onSubmit={(e) => e.preventDefault()}>
@@ -313,7 +414,7 @@ const Calendar = () => {
             </div>
             <div className="form-field">
               <label>Datum:</label>
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+              <input type="date" lang="de" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
             </div>
             {(selectedResource === "Bus alt" || selectedResource === "Bus neu") && (
               <div className="form-field">
@@ -357,6 +458,8 @@ const Calendar = () => {
           </form>
         </div>
       </div>
+ 
+   
       <style jsx>{`
         .dashboardWrapper {
           display: flex;
@@ -765,6 +868,108 @@ const Calendar = () => {
             font-size: 0.9rem; /* Noch kleinere Schrift für sehr kleine Geräte */
           }
         }
+
+
+.error-modal,
+.delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.error-modal-content,
+.delete-modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.error-modal-content h3,
+.delete-modal-content h3 {
+  margin: 0 0 15px;
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.error-modal-content p,
+.delete-modal-content p {
+  margin: 0 0 20px;
+  font-size: 1rem;
+  color: #555;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.modal-ok-button {
+  background-color: #d32f2f;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.modal-ok-button:hover {
+  background-color: #d32f2f;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.modal-confirm-button {
+  background-color: #d32f2f;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.modal-confirm-button:hover {
+  background-color: #b71c1c;
+}
+
+.modal-cancel-button {
+  background-color: #757575;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.modal-cancel-button:hover {
+  background-color: #616161;
+}
+
+
       `}</style>
     </div>
   );
