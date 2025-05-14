@@ -14,6 +14,7 @@ const Calendar = () => {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [busDestination, setBusDestination] = useState('');
+  const [purpose, setPurpose] = useState(''); // Neuer State für Verwendungszweck
   const [reservedResources, setReservedResources] = useState([]);
   const [selectedDayReservations, setSelectedDayReservations] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,7 +23,6 @@ const Calendar = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
-  // Neuer State für Löschbestätigung
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [reservationToDelete, setReservationToDelete] = useState(null);
 
@@ -101,6 +101,16 @@ const Calendar = () => {
       return;
     }
 
+    if (
+      selectedResource !== "Bus alt" &&
+      selectedResource !== "Bus neu" &&
+      !purpose
+    ) {
+      setErrorMessage('Bitte den Verwendungszweck angeben.');
+      setIsErrorModalOpen(true);
+      return;
+    }
+
     const startDateTime = new Date(`${selectedDate}T${startTime}:00`);
     const endDateTime = new Date(`${selectedDate}T${endTime}:00`);
     if (endDateTime <= startDateTime) {
@@ -114,6 +124,7 @@ const Calendar = () => {
       group: selectedGroup,
       date: selectedDate,
       busDestination: busDestination,
+      purpose: purpose, // Verwendungszweck hinzufügen
       startTime: startTime,
       endTime: endTime,
       user: session.user.username,
@@ -149,6 +160,7 @@ const Calendar = () => {
         setSelectedGroup('');
         setSelectedDate('');
         setBusDestination('');
+        setPurpose(''); // Reset Verwendungszweck
         setStartTime('');
         setEndTime('');
       } else {
@@ -181,7 +193,6 @@ const Calendar = () => {
   };
 
   const handleDelete = (reservation) => {
-    // Öffne das Löschbestätigungs-Modal und speichere die zu löschende Reservierung
     setReservationToDelete(reservation);
     setIsDeleteModalOpen(true);
   };
@@ -212,14 +223,12 @@ const Calendar = () => {
       setErrorMessage('Fehler beim Löschen');
       setIsErrorModalOpen(true);
     } finally {
-      // Schließe das Löschbestätigungs-Modal
       setIsDeleteModalOpen(false);
       setReservationToDelete(null);
     }
   };
 
   const cancelDelete = () => {
-    // Schließe das Löschbestätigungs-Modal ohne Aktion
     setIsDeleteModalOpen(false);
     setReservationToDelete(null);
   };
@@ -334,6 +343,9 @@ const Calendar = () => {
                     {res.resource.includes("Bus") && res.busDestination && (
                       <p><strong>Ziel der Fahrt:</strong> {res.busDestination}</p>
                     )}
+                    {!res.resource.includes("Bus") && res.purpose && (
+                      <p><strong>Verwendungszweck:</strong> {res.purpose}</p>
+                    )}
                     {(session.user.role === 'admin' || session.user.role === 'vorstand') && (
                       <button onClick={() => handleDelete(res)} className="delete-button">
                         Löschen
@@ -422,6 +434,12 @@ const Calendar = () => {
                 <input type="text" value={busDestination} onChange={(e) => setBusDestination(e.target.value)} />
               </div>
             )}
+            {selectedResource && selectedResource !== "Bus alt" && selectedResource !== "Bus neu" && (
+              <div className="form-field">
+                <label>Verwendungszweck:</label>
+                <input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+              </div>
+            )}
             <div className="form-field">
               <label>Startzeit:</label>
               <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
@@ -458,6 +476,7 @@ const Calendar = () => {
           </form>
         </div>
       </div>
+ 
  
    
       <style jsx>{`
