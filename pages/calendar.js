@@ -27,7 +27,7 @@ const Calendar = () => {
   const [reservationToDelete, setReservationToDelete] = useState(null);
 
   const groupColors = {
-    Fußball: '#4CAF50',
+    Fußball: '#2e6b23',
     Volleyball: '#FF9800',
     Gymnastik: '#E91E63',
     Sonstige: '#2196F3',
