@@ -17,9 +17,9 @@ export default async function handler(req, res) {
       }
 
       // Validierung des Verwendungszwecks für Nicht-Bus-Ressourcen
-      if (resource !== 'Bus alt' && resource !== 'Bus neu' && (!purpose || purpose.trim() === '')) {
+      if (resource !== 'Bus alt' && resource !== 'VW Bus weiß' && resource !== 'VW Bus silber' && (!purpose || purpose.trim() === '')) {
         return res.status(400).json({ message: 'Verwendungszweck ist für diese Ressource erforderlich' });
-      }
+    }
 
       // Prüfen, ob der gewünschte Zeitraum für die spezifische Ressource bereits reserviert ist
       const existingReservations = await Reservation.find({

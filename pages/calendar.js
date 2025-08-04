@@ -14,7 +14,7 @@ const Calendar = () => {
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [busDestination, setBusDestination] = useState('');
-  const [purpose, setPurpose] = useState(''); // Neuer State für Verwendungszweck
+  const [purpose, setPurpose] = useState('');
   const [reservedResources, setReservedResources] = useState([]);
   const [selectedDayReservations, setSelectedDayReservations] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -96,16 +96,20 @@ const Calendar = () => {
     }
 
     if (!selectedResource || !selectedGroup || !selectedDate || !startTime || !endTime) {
-      setErrorMessage('Bitte alle Felder ausfüllen.');
+      setErrorMessage('Bitte alle Pflichtfelder ausfüllen (Ressource, Gruppe, Datum, Startzeit, Endzeit).');
       setIsErrorModalOpen(true);
       return;
     }
 
-    if (
-      selectedResource !== "Bus alt" &&
-      selectedResource !== "Bus neu" &&
-      !purpose
-    ) {
+    const isBus = ["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource);
+
+    if (isBus && !busDestination) {
+      setErrorMessage('Bitte das Ziel der Fahrt angeben.');
+      setIsErrorModalOpen(true);
+      return;
+    }
+
+    if (!isBus && !purpose) {
       setErrorMessage('Bitte den Verwendungszweck angeben.');
       setIsErrorModalOpen(true);
       return;
@@ -123,8 +127,8 @@ const Calendar = () => {
       resource: selectedResource,
       group: selectedGroup,
       date: selectedDate,
-      busDestination: busDestination,
-      purpose: purpose, // Verwendungszweck hinzufügen
+      busDestination: isBus ? busDestination : '',
+      purpose: !isBus ? purpose : '',
       startTime: startTime,
       endTime: endTime,
       user: session.user.username,
@@ -160,7 +164,7 @@ const Calendar = () => {
         setSelectedGroup('');
         setSelectedDate('');
         setBusDestination('');
-        setPurpose(''); // Reset Verwendungszweck
+        setPurpose('');
         setStartTime('');
         setEndTime('');
       } else {
@@ -340,10 +344,10 @@ const Calendar = () => {
                     <p><strong>Von:</strong> {res.startTime}</p>
                     <p><strong>Bis:</strong> {res.endTime}</p>
                     <p><strong>Angemeldet von:</strong> {res.username}</p>
-                    {res.resource.includes("Bus") && res.busDestination && (
+                    {["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(res.resource) && res.busDestination && (
                       <p><strong>Ziel der Fahrt:</strong> {res.busDestination}</p>
                     )}
-                    {!res.resource.includes("Bus") && res.purpose && (
+                    {!["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(res.resource) && res.purpose && (
                       <p><strong>Verwendungszweck:</strong> {res.purpose}</p>
                     )}
                     {(session.user.role === 'admin' || session.user.role === 'vorstand') && (
@@ -401,13 +405,15 @@ const Calendar = () => {
                   </>
                 )}
                 <option value="Bus alt">Bus alt</option>
-                <option value="Bus neu">Bus neu</option>
+                <option value="VW Bus weiß">VW Bus weiß</option>
+                <option value="VW Bus silber">VW Bus silber</option>
                 <option value="Besprechungsraum">Besprechungsraum</option>
                 <option value="Kiosk">Kiosk</option>
                 <option value="Vereinsheim">Vereinsheim</option>
                 <option value="Raum Frankenried">Raum Frankenried</option>
                 <option value="Raum Steinholz">Raum Steinholz</option>
                 <option value="Zelt Sportplatz">Zelt Sportplatz</option>
+                <option value="JBL Box">JBL Box</option>
               </select>
             </div>
             <div className="form-field">
@@ -428,13 +434,13 @@ const Calendar = () => {
               <label>Datum:</label>
               <input type="date" lang="de" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
             </div>
-            {(selectedResource === "Bus alt" || selectedResource === "Bus neu") && (
+            {["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource) && (
               <div className="form-field">
                 <label>Ziel der Fahrt:</label>
                 <input type="text" value={busDestination} onChange={(e) => setBusDestination(e.target.value)} />
               </div>
             )}
-            {selectedResource && selectedResource !== "Bus alt" && selectedResource !== "Bus neu" && (
+            {!["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource) && (
               <div className="form-field">
                 <label>Verwendungszweck:</label>
                 <input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} />
@@ -476,23 +482,21 @@ const Calendar = () => {
           </form>
         </div>
       </div>
- 
- 
-   
+
       <style jsx>{`
         .dashboardWrapper {
           display: flex;
           min-height: 100vh;
           background-color: #fff;
           font-family: 'Arial', sans-serif;
-          color: #111111; 
+          color: #111111;
         }
 
         .hamburger {
           display: none;
           position: fixed;
           top: 10px;
-          right: 10px; /* Verschoben nach rechts */
+          right: 10px;
           background: #b30000;
           color: #fff;
           border: none;
@@ -524,7 +528,7 @@ const Calendar = () => {
         .userInfo {
           border-bottom: 1px solid #333;
           padding-bottom: 0.5rem;
-          padding-right: 2rem; /* Mehr Platz für den Text */
+          padding-right: 2rem;
         }
 
         .userInfo h2 {
@@ -583,11 +587,10 @@ const Calendar = () => {
         .header {
           background-color: #b30000;
           color: #fff;
-          height: 50px; /* Höhe leicht reduziert */
+          height: 50px;
           display: flex;
           align-items: center;
-          justify-content: center;
-          font-size: 1.2rem; /* Schriftgröße verkleinert */
+          font-size: 1.2rem;
           font-weight: bold;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
           margin-bottom: 1rem;
@@ -788,7 +791,7 @@ const Calendar = () => {
         @media (max-width: 768px) {
           .hamburger {
             display: block;
-            right: 10px; /* Sicherstellen, dass es rechts bleibt */
+            right: 10px;
           }
 
           .sidebar {
@@ -806,7 +809,7 @@ const Calendar = () => {
           }
 
           .header {
-            font-size: 1rem; /* Noch kleinere Schrift für Tablets/Mobile */
+            font-size: 1rem;
             height: 40px;
           }
 
@@ -884,111 +887,108 @@ const Calendar = () => {
           }
 
           .header {
-            font-size: 0.9rem; /* Noch kleinere Schrift für sehr kleine Geräte */
+            font-size: 0.9rem;
           }
         }
 
+        .error-modal,
+        .delete-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 1000;
+        }
 
-.error-modal,
-.delete-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
+        .error-modal-content,
+        .delete-modal-content {
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          max-width: 400px;
+          width: 90%;
+          position: relative;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+          text-align: center;
+        }
 
-.error-modal-content,
-.delete-modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-  position: relative;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  text-align: center;
-}
+        .error-modal-content h3,
+        .delete-modal-content h3 {
+          margin: 0 0 15px;
+          font-size: 1.5rem;
+          color: #333;
+        }
 
-.error-modal-content h3,
-.delete-modal-content h3 {
-  margin: 0 0 15px;
-  font-size: 1.5rem;
-  color: #333;
-}
+        .error-modal-content p,
+        .delete-modal-content p {
+          margin: 0 0 20px;
+          font-size: 1rem;
+          color: #555;
+        }
 
-.error-modal-content p,
-.delete-modal-content p {
-  margin: 0 0 20px;
-  font-size: 1rem;
-  color: #555;
-}
+        .modal-close {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: none;
+          border: none;
+          font-size: 1.2rem;
+          cursor: pointer;
+          color: #333;
+        }
 
-.modal-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  cursor: pointer;
-  color: #333;
-}
+        .modal-ok-button {
+          background-color: #d32f2f;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 1rem;
+        }
 
-.modal-ok-button {
-  background-color: #d32f2f;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
+        .modal-ok-button:hover {
+          background-color: #b71c1c;
+        }
 
-.modal-ok-button:hover {
-  background-color: #d32f2f;
-}
+        .modal-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+        }
 
-.modal-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-}
+        .modal-confirm-button {
+          background-color: #d32f2f;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 1rem;
+        }
 
-.modal-confirm-button {
-  background-color: #d32f2f;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
+        .modal-confirm-button:hover {
+          background-color: #b71c1c;
+        }
 
-.modal-confirm-button:hover {
-  background-color: #b71c1c;
-}
+        .modal-cancel-button {
+          background-color: #757575;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 1rem;
+        }
 
-.modal-cancel-button {
-  background-color: #757575;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.modal-cancel-button:hover {
-  background-color: #616161;
-}
-
-
+        .modal-cancel-button:hover {
+          background-color: #616161;
+        }
       `}</style>
     </div>
   );
