@@ -1,4 +1,3 @@
-// pages/register.js
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
@@ -85,9 +84,10 @@ export default function RegisterPage() {
             style={styles.input}
           />
           <select name="role" onChange={handleFormChange} required style={styles.select}>
-          <option value="standard">Standard</option>
-          <option value="vorstand">Vorstand</option>
-          <option value="admin">Admin</option>
+            <option value="standard">Standard</option>
+            <option value="vorstand">Vorstand</option>
+            <option value="admin">Admin</option>
+            <option value="observer">Beobachter</option>
           </select>
           <button type="submit" style={styles.submitButton}>Registrieren</button>
         </form>
@@ -147,9 +147,6 @@ const styles = {
     borderRadius: '4px',
     cursor: 'pointer',
     transition: 'background-color 0.3s',
-  },
-  submitButtonHover: {
-    backgroundColor: '#45a049',
   },
   error: {
     color: 'red',

@@ -88,6 +88,12 @@ const Calendar = () => {
   };
 
   const handleReserve = async () => {
+    if (session.user.role === "observer") {
+      setErrorMessage('Beobachter haben keine Berechtigung, Reservierungen zu erstellen.');
+      setIsErrorModalOpen(true);
+      return;
+    }
+
     if (status !== 'authenticated' || !session?.user?.username) {
       setErrorMessage('Bitte melden Sie sich an, um eine Reservierung zu erstellen.');
       setIsErrorModalOpen(true);
@@ -101,7 +107,7 @@ const Calendar = () => {
       return;
     }
 
-    const isBus = ["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource);
+    const isBus = ["VW Bus weiß", "VW Bus silber", "Bus Opel"].includes(selectedResource);
 
     if (isBus && !busDestination) {
       setErrorMessage('Bitte das Ziel der Fahrt angeben.');
@@ -344,10 +350,10 @@ const Calendar = () => {
                     <p><strong>Von:</strong> {res.startTime}</p>
                     <p><strong>Bis:</strong> {res.endTime}</p>
                     <p><strong>Angemeldet von:</strong> {res.username}</p>
-                    {["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(res.resource) && res.busDestination && (
+                    {["VW Bus weiß", "VW Bus silber", "Bus Opel"].includes(res.resource) && res.busDestination && (
                       <p><strong>Ziel der Fahrt:</strong> {res.busDestination}</p>
                     )}
-                    {!["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(res.resource) && res.purpose && (
+                    {!["VW Bus weiß", "VW Bus silber", "Bus Opel"].includes(res.resource) && res.purpose && (
                       <p><strong>Verwendungszweck:</strong> {res.purpose}</p>
                     )}
                     {(session.user.role === 'admin' || session.user.role === 'vorstand') && (
@@ -390,97 +396,99 @@ const Calendar = () => {
             </div>
           </div>
         )}
-        <div className="reservierungs-section">
-          <h3>Reservierung hinzufügen</h3>
-          <form onSubmit={(e) => e.preventDefault()}>
-            <div className="form-field">
-              <label>Ressource:</label>
-              <select value={selectedResource} onChange={(e) => setSelectedResource(e.target.value)}>
-                <option value="">Wählen Sie eine Ressource</option>
-                {(session.user.role === "admin" || session.user.role === "vorstand") && (
-                  <>
-                    <option value="Halle 1">Halle 1</option>
-                    <option value="Halle 2">Halle 2</option>
-                    <option value="Halle 3">Halle 3</option>
-                  </>
-                )}
-                <option value="Bus alt">Bus alt</option>
-                <option value="VW Bus weiß">VW Bus weiß</option>
-                <option value="VW Bus silber">VW Bus silber</option>
-                <option value="Besprechungsraum">Besprechungsraum</option>
-                <option value="Kiosk">Kiosk</option>
-                <option value="Vereinsheim">Vereinsheim</option>
-                <option value="Raum Frankenried">Raum Frankenried</option>
-                <option value="Raum Steinholz">Raum Steinholz</option>
-                <option value="Zelt Sportplatz">Zelt Sportplatz</option>
-                <option value="JBL Box">JBL Box</option>
-              </select>
-            </div>
-            <div className="form-field">
-              <label>Gruppe:</label>
-              <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
-                <option value="">Wählen Sie eine Gruppe</option>
-                <option value="Fußball">Fußball</option>
-                <option value="Volleyball">Volleyball</option>
-                <option value="Gymnastik">Gymnastik</option>
-                <option value="Sonstige">Sonstige</option>
-              </select>
-            </div>
-            <div className="form-field">
-              <label>Angemeldet von:</label>
-              <input type="text" value={session.user.username} disabled />
-            </div>
-            <div className="form-field">
-              <label>Datum:</label>
-              <input type="date" lang="de" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-            </div>
-            {["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource) && (
+        {session.user.role !== "observer" && (
+          <div className="reservierungs-section">
+            <h3>Reservierung hinzufügen</h3>
+            <form onSubmit={(e) => e.preventDefault()}>
               <div className="form-field">
-                <label>Ziel der Fahrt:</label>
-                <input type="text" value={busDestination} onChange={(e) => setBusDestination(e.target.value)} />
+                <label>Ressource:</label>
+                <select value={selectedResource} onChange={(e) => setSelectedResource(e.target.value)}>
+                  <option value="">Wählen Sie eine Ressource</option>
+                  {(session.user.role === "admin" || session.user.role === "vorstand") && (
+                    <>
+                      <option value="Halle 1">Halle 1</option>
+                      <option value="Halle 2">Halle 2</option>
+                      <option value="Halle 3">Halle 3</option>
+                    </>
+                  )}
+                  <option value="Bus Opel">Bus Opel</option>
+                  <option value="VW Bus weiß">VW Bus weiß</option>
+                  <option value="VW Bus silber">VW Bus silber</option>
+                  <option value="Besprechungsraum">Besprechungsraum</option>
+                  <option value="Kiosk">Kiosk</option>
+                  <option value="Vereinsheim">Vereinsheim</option>
+                  <option value="Raum Frankenried">Raum Frankenried</option>
+                  <option value="Raum Steinholz">Raum Steinholz</option>
+                  <option value="Zelt Sportplatz">Zelt Sportplatz</option>
+                  <option value="JBL Box">JBL Box</option>
+                </select>
               </div>
-            )}
-            {!["VW Bus weiß", "VW Bus silber", "Bus alt"].includes(selectedResource) && (
               <div className="form-field">
-                <label>Verwendungszweck:</label>
-                <input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+                <label>Gruppe:</label>
+                <select value={selectedGroup} onChange={(e) => setSelectedGroup(e.target.value)}>
+                  <option value="">Wählen Sie eine Gruppe</option>
+                  <option value="Fußball">Fußball</option>
+                  <option value="Volleyball">Volleyball</option>
+                  <option value="Gymnastik">Gymnastik</option>
+                  <option value="Sonstige">Sonstige</option>
+                </select>
               </div>
-            )}
-            <div className="form-field">
-              <label>Startzeit:</label>
-              <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
-                {[...Array(24).keys()].map((hour) => (
-                  <>
-                    <option key={`${hour}:00`} value={`${hour.toString().padStart(2, '0')}:00`}>
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </option>
-                    <option key={`${hour}:30`} value={`${hour.toString().padStart(2, '0')}:30`}>
-                      {`${hour.toString().padStart(2, '0')}:30`}
-                    </option>
-                  </>
-                ))}
-              </select>
-            </div>
-            <div className="form-field">
-              <label>Endzeit:</label>
-              <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
-                {[...Array(24).keys()].map((hour) => (
-                  <>
-                    <option key={`${hour}:00`} value={`${hour.toString().padStart(2, '0')}:00`}>
-                      {`${hour.toString().padStart(2, '0')}:00`}
-                    </option>
-                    <option key={`${hour}:30`} value={`${hour.toString().padStart(2, '0')}:30`}>
-                      {`${hour.toString().padStart(2, '0')}:30`}
-                    </option>
-                  </>
-                ))}
-              </select>
-            </div>
-            <button type="button" onClick={handleReserve}>
-              Reservierung speichern
-            </button>
-          </form>
-        </div>
+              <div className="form-field">
+                <label>Angemeldet von:</label>
+                <input type="text" value={session.user.username} disabled />
+              </div>
+              <div className="form-field">
+                <label>Datum:</label>
+                <input type="date" lang="de" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+              </div>
+              {["VW Bus weiß", "VW Bus silber", "Bus Opel"].includes(selectedResource) && (
+                <div className="form-field">
+                  <label>Ziel der Fahrt:</label>
+                  <input type="text" value={busDestination} onChange={(e) => setBusDestination(e.target.value)} />
+                </div>
+              )}
+              {!["VW Bus weiß", "VW Bus silber", "Bus Opel"].includes(selectedResource) && (
+                <div className="form-field">
+                  <label>Verwendungszweck:</label>
+                  <input type="text" value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+                </div>
+              )}
+              <div className="form-field">
+                <label>Startzeit:</label>
+                <select value={startTime} onChange={(e) => setStartTime(e.target.value)}>
+                  {[...Array(24).keys()].map((hour) => (
+                    <>
+                      <option key={`${hour}:00`} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {`${hour.toString().padStart(2, '0')}:00`}
+                      </option>
+                      <option key={`${hour}:30`} value={`${hour.toString().padStart(2, '0')}:30`}>
+                        {`${hour.toString().padStart(2, '0')}:30`}
+                      </option>
+                    </>
+                  ))}
+                </select>
+              </div>
+              <div className="form-field">
+                <label>Endzeit:</label>
+                <select value={endTime} onChange={(e) => setEndTime(e.target.value)}>
+                  {[...Array(24).keys()].map((hour) => (
+                    <>
+                      <option key={`${hour}:00`} value={`${hour.toString().padStart(2, '0')}:00`}>
+                        {`${hour.toString().padStart(2, '0')}:00`}
+                      </option>
+                      <option key={`${hour}:30`} value={`${hour.toString().padStart(2, '0')}:30`}>
+                        {`${hour.toString().padStart(2, '0')}:30`}
+                      </option>
+                    </>
+                  ))}
+                </select>
+              </div>
+              <button type="button" onClick={handleReserve}>
+                Reservierung speichern
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
